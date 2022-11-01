@@ -1,6 +1,11 @@
 <template>
   <div class="r-time-line__body" :style="{ width: `${widthLine}px` }">
+    
     <div class="r-time-line__line">
+      <div class="r-time-line__range" :style="{ width: `${widthLine}px` }">
+        <div class="r-time-line__range-ini" :style="{ right: `${rangeIniPosition}px`, width: `${widthLine}px` }"></div>
+        <div class="r-time-line__range-end"></div>
+      </div>
       <div class="r-time-line__line-kings" v-html="lineKings"></div>
       <div class="r-time-line__line-decade" v-html="decadeMark"></div>
     </div>
@@ -8,49 +13,66 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex'
 
 export default {
   name: 'TimeLine',
-
   data() {
     return {
-      widthLine: 0,
+      widthLine: this.$store.state.widthLine,
       lineKings: '',
       decadeMark: '',
-      yearIni: 1460,
-      yearEnd: 2040,
+      yearIni: this.$store.state.yearIni,
+      yearEnd: this.$store.state.yearEnd,
       yearsTotal: 0,
       zoom: [1, 2, 5, 10],
-      valueZoom: 15,
+      valueZoom: this.$store.state.range,
       paddingLine: 16,
-      postionsFamilies: []
+      postionsFamilies: [],
+      rangeIniPosition: 0,
+      rangeEndPosition: 0,
     }
   },
   mounted() {
-    this.createWidthLine();
-    this.createDecadeMarks();
-    this.createLineKings();
+    this.createAll();
   },
   methods: {
+    ...mapActions({
+      setWidthLine: 'setWidthLine'
+    }),
+
+    createAll () {
+      this.createWidthLine();
+      this.createDecadeMarks();
+      this.createLineKings();
+      this.rangeCurtain();
+    },
+
     createWidthLine() {
-      this.yearsTotal = this.yearEnd - this.yearIni
-      this.widthLine = ((this.yearsTotal * this.valueZoom) + (this.paddingLine * 2) - 1);
+      this.yearsTotal = this.yearEnd - this.yearIni;
+
+      if (!this.$store.state.isFullScreen) {
+        this.widthLine = ((this.yearsTotal * this.valueZoom) + (this.paddingLine * 2) - 1);
+      }
+
+      console.log(this.widthLine)
+      this.setWidthLine(this.widthLine);
     },
 
     createDecadeMarks () {
       let classYear = '';
-      if(this.valueZoom < 3) {
+      if(this.valueZoom < 4) {
         classYear = 'vertical';
       }
 
       for (let index = 0; index < this.yearsTotal; index++) {
         if(( index % 10 ) == 0 || index === 0){
-          this.decadeMark = this.decadeMark + '<div class="r-time-line__line-decade-mark ' + classYear + '" data-year="' + (index + this.yearIni) + '" data-id="' + (index + 1) + '" style="padding-right:' + (this.valueZoom - 1) + 'px"><span>' + (index + this.yearIni) + '</span></div>';
+          this.decadeMark = this.decadeMark + '<div class="r-time-line__line-marks r-time-line__line-decade-mark ' + classYear + '" data-year="' + (index + this.yearIni) + '" data-id="' + (index + 1) + '" style="padding-right:' + (this.valueZoom - 1) + 'px"><span>' + (index + this.yearIni) + '</span></div>';
         } else {
           if (index === this.yearsTotal - 1) {
-            this.decadeMark = this.decadeMark + '<div class="r-time-line__line-years-mark ' + classYear + '" data-year="' + (index + this.yearIni) + '" data-id="' + (index + 1) + '" style="padding-right:' + (this.valueZoom - 1) + 'px"><span style"left: calc((-34px / 2) + ' + (this.valueZoom - 1) + 'px) ;">' + (index + this.yearIni + 1) + '</span></div>';
+            this.decadeMark = this.decadeMark + '<div class="r-time-line__line-marks r-time-line__line-years-mark ' + classYear + '" data-year="' + (index + this.yearIni) + '" data-id="' + (index + 1) + '" style="padding-right:' + (this.valueZoom - 1) + 'px"><span style"left: calc((-34px / 2) + ' + (this.valueZoom - 1) + 'px) ;">' + (index + this.yearIni + 1) + '</span></div>';
           } else {
-            this.decadeMark = this.decadeMark + '<div class="r-time-line__line-years-mark ' + classYear + '" data-year="' + (index + this.yearIni) + '" data-id="' + (index + 1) + '" style="padding-right:' + (this.valueZoom - 1) + 'px"></div>';
+            this.decadeMark = this.decadeMark + '<div class="r-time-line__line-marks r-time-line__line-years-mark ' + classYear + '" data-year="' + (index + this.yearIni) + '" data-id="' + (index + 1) + '" style="padding-right:' + (this.valueZoom - 1) + 'px"></div>';
           }
         }
       }
@@ -81,11 +103,13 @@ export default {
         familyAux =  king.family;
       }
 
-      console.log(levels)
-
       for (let index = 0; index < kings.length; index++) {
         const king = kings[index];
         const positionInitYearKing = king.yearIni - this.yearIni
+        let widthReign = king.yearEnd - king.yearIni;
+        let leftReign = 0;
+        let cardSmall = '';
+        let marginNameKing = 0
 
         if(king.yearEnd === 0) {
           const date = new Date();
@@ -93,39 +117,77 @@ export default {
         }
 
         if (family === '') {
-          this.lineKings =  this.lineKings + '<div class="r-time-line__line-family" style="height: ' + ((levels[levelsIntSec] * 50) + 30) + 'px; z-index: ' + levelsIntSec + '"><p>' + king.family + '</p>';
+          this.lineKings =  this.lineKings + '<div class="r-time-line__line-family" style="height: ' + ((levels[levelsIntSec] * 50) + 50) + 'px; z-index: ' + levelsIntSec + '"><p>' + king.family + '</p>';
         } else if (family !== king.family) {
           levelsIntSec++;
-          this.lineKings =  this.lineKings + '</div><div class="r-time-line__line-family" style="height: ' + ((levels[levelsIntSec] * 50) + 30) + 'px; z-index: ' + levelsIntSec + '"><p>' + king.family + '</p>';
+          this.lineKings =  this.lineKings + '</div><div class="r-time-line__line-family" style="height: ' + ((levels[levelsIntSec] * 50) + 50) + 'px; z-index: ' + levelsIntSec + '"><p>' + king.family + '</p>';
         }
 
         family =  king.family;
 
-        this.lineKings = this.lineKings + '<div class="r-time-line__line-king" style="width: ' + this.valueZoom * ( king.yearEnd - king.yearIni) + 'px; left:' + (positionInitYearKing * this.valueZoom) + 'px; bottom: calc((50px * ' + king.level + ') + 16px);z-index:' + ((levels[levelsIntSec] - 1) - king.level) + '"><div class="r-time-line__line-card"><p>' + king.name + '</p><p style="display: none;">' + king.yearIni + '-' + king.yearEnd + '</p></div></div>'
+        if (widthReign === 0) {
+          widthReign = this.valueZoom * 0.5;
+          leftReign = positionInitYearKing * this.valueZoom - (widthReign / 2);
+          cardSmall = 'cardSmall';
+          marginNameKing = widthReign + 8;
+        } else if (widthReign < 5) {
+          widthReign = this.valueZoom * widthReign;
+          leftReign = positionInitYearKing * this.valueZoom
+          cardSmall = 'cardSmall';
+          marginNameKing = widthReign + 8;
+        } else {
+          widthReign = this.valueZoom * widthReign;
+          leftReign = positionInitYearKing * this.valueZoom
+        }
 
-        
+        let nameKing = document.createElement('p')
+        nameKing.innerText = king.name;
+
+
+        this.lineKings = this.lineKings + '<div class="r-time-line__line-king" style="width: ' + widthReign + 'px;' +
+                                                                                      'left:' + leftReign + 'px;' +
+                                                                                      'bottom: calc((50px * ' + king.level + ') + 16px);' +
+                                                                                      'z-index:' + ((levels[levelsIntSec] - 1) - king.level) + '">' +
+                                            '<div class="r-time-line__line-card ' + cardSmall + '">' +
+                                              '<p style="margin-left: ' + marginNameKing + 'px">' + king.name + '</p>' +
+                                              '<p style="display: none;">' + king.yearIni + '-' + king.yearEnd + '</p>' +
+                                            '</div>' +
+                                          '</div>'
       }
-    }
+    },
+
+    rangeCurtain () {
+      const yearIniInput = this.$store.state.yearIniInput;
+      // const yearEndInput = this.$store.state.yearEndInput;
+
+      if (yearIniInput) {
+        this.rangeIniPosition = this.widthLine - ((yearIniInput - this.yearIni) * this.valueZoom);
+      } else {
+        this.rangeIniPosition = this.widthLine + 16;
+      }
+      
+    },
+
+    removeAll() {
+      const families = document.querySelectorAll('.r-time-line__line-family');
+      const years = document.querySelectorAll('.r-time-line__line-marks');
+
+      for (let i = 0; i < families.length; i++) {
+       families[i].remove();
+      }
+
+      for (let j = 0; j < years.length; j++) {
+        years[j].remove();
+      }
+
+      this.lineKings = '';
+      this.decadeMark = '';
+    },
   }
 }
 </script>
 
-<style>
-html {
-  position: relative;
-  white-space: nowrap;
-  transition: all 0.2s;
-  will-change: transform;
-  user-select: none;
-  cursor: pointer;
-}
-
-html.active {
-  background: rgba(255,255,255,0.3);
-  cursor: grabbing;
-  cursor: -webkit-grabbing;
-}
-
+<style lang="scss">
 .r-time-line__body {
   height: calc(100vh - 56px);
   width: 5800px;
@@ -136,13 +198,13 @@ html.active {
 }
 
 .r-time-line__line {
-  height: 12px;
+  height: inherit;
   width: 100%;
-  outline: 1px solid #cccccc;
+  // outline: 1px solid #cccccc;
   display: block;
   position: relative;
-  -webkit-box-shadow: 0px 0px 150px 0px rgba(0,0,0,1); 
-  box-shadow: 0px 0px 150px 0px rgba(0,0,0,1);
+  // -webkit-box-shadow: 0px 0px 150px 0px rgba(0,0,0,1); 
+  // box-shadow: 0px 0px 150px 0px rgba(0,0,0,1);
   background-color: #FFFFFF;
 }
 
@@ -174,7 +236,8 @@ html.active {
   display: flex;
   position: absolute;
   left: 0;
-  top: 0;
+  bottom: 0;
+  z-index: 1;
 }
 
 .r-time-line__line-decade-mark {
@@ -243,11 +306,13 @@ html.active {
   bottom: 12px;
   width: 100%;
   overflow: hidden;
+  z-index: 3;
 }
 
 .r-time-line__line-family {
   position: relative;
   min-height: 70px;
+  border-top: 1px dotted #cccccc;
 }
 
 .r-time-line__line-family > p {
@@ -286,6 +351,53 @@ html.active {
   justify-content: center;
   align-items: center;
   text-align: center;
+  position: relative;
+  width: inherit;
+
+  p {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    width: inherit;
+  }
+
+  &.cardSmall {
+    align-items: flex-start;
+
+    p {
+      text-align: left;
+      margin-left: 8px;
+      overflow: visible;
+    }
+  }
+}
+
+
+
+.r-range {
+
+}
+
+.r-time-line__range {
+  height: 100vh;
+  position: absolute;
+  z-index: 3;
+
+  &-ini,
+  &-end {
+    background-color: #000000;
+    height: 100vh;
+    opacity: .4;
+    position: absolute;
+  }
+
+  &-ini {
+  
+  }
+
+  &-end {
+
+  }
 }
 
 

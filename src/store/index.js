@@ -1,6 +1,6 @@
-import { createStore } from "vuex";
 
-export default createStore({
+
+export default ({
   state: {
     kings: [
       {
@@ -229,8 +229,47 @@ export default createStore({
         "family": "Casa de Saboya",
         "level": 0
       },
-    ]
+    ],
+    range: 20,
+    yearIni: 1460,
+    yearEnd: 2040,
+    widthLine: 0,
+    yearIniInput: 0,
+    yearEndInput: 0,
+    isFullScreen: false
   },
-  mutations: {},
-  actions: {}
+  mutations: {
+    range (state, range) {
+      state.range = range
+    },
+    widthLine (state, widthLine) {
+      state.widthLine = widthLine
+    },
+    yearIni (state, yearIni) {
+      state.yearIniInput = yearIni
+    },
+    yearEnd (state, yearEnd) {
+      state.yearEndInput = yearEnd
+    },
+    isFullScreen (state, isFullScreen) {
+      state.isFullScreen = isFullScreen
+    }
+  },
+  actions: {
+    setRange ({ commit }, range) { 
+      commit('range', range) 
+    },
+    setWidthLine ({ commit }, widthLine) { 
+      commit('widthLine', widthLine) 
+    },
+    setYearIniInput ({ commit }, yearIni) { 
+      commit('yearIni', yearIni) 
+    },
+    setYearEndInput ({ commit }, yearEnd) { 
+      commit('yearEnd', yearEnd) 
+    },
+    setIsFullScreen ({ commit }, isFullScreen) { 
+      commit('isFullScreen', isFullScreen) 
+    },
+  }
 })
